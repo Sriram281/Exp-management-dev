@@ -26,6 +26,8 @@ export default function ExpensesScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
+  const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -99,6 +101,16 @@ export default function ExpensesScreen() {
       resetForm();
     }
     setIsModalVisible(true);
+  };
+
+  const openDetailModal = (expense: Expense) => {
+    setSelectedExpense(expense);
+    setIsDetailModalVisible(true);
+  };
+
+  const closeDetailModal = () => {
+    setIsDetailModalVisible(false);
+    setSelectedExpense(null);
   };
 
   const closeModal = () => {
@@ -265,15 +277,20 @@ export default function ExpensesScreen() {
           </View>
         ) : (
           filteredExpenses.map((expense) => (
-            <View key={expense.id} style={[styles.expenseCard, { backgroundColor: theme.colors.surface }]}>
+            <TouchableOpacity 
+              key={expense.id} 
+              style={[styles.expenseCard, { backgroundColor: theme.colors.surface }]}
+              onPress={() => openDetailModal(expense)}
+            >
               <View style={styles.expenseLeft}>
                 <View style={styles.iconContainer}>
                   {getCategoryIcon(expense.category)}
                 </View>
                 <View style={styles.expenseInfo}>
                   <Text style={[styles.expenseCategory, { color: theme.colors.text.primary }]}>{expense.category}</Text>
-                  <Text style={[styles.expenseAccount, { color: theme.colors.text.muted }]}>{expense.account || 'Cash'}</Text>
-                  <Text style={[styles.expenseDate, { color: theme.colors.text.muted }]}>{formatDate(expense.date)}</Text>
+                  <Text style={[styles.expenseAccountDate, { color: theme.colors.text.muted }]}>
+                    {expense.account || 'Cash'} • {formatDate(expense.date)}
+                  </Text>
                   {expense.location && (
                     <Text style={[styles.expenseLocation, { color: theme.colors.text.muted }]}>📍 {expense.location}</Text>
                   )}
@@ -284,24 +301,8 @@ export default function ExpensesScreen() {
                 <Text style={[styles.expenseAmount, { color: theme.colors.expense }]}>
                   {settings.currency}{expense.amount.toLocaleString()}
                 </Text>
-                <Text style={[styles.paymentMethod, { color: theme.colors.text.muted }]}>{expense.paymentMethod}</Text>
-                
-                <View style={styles.actionButtons}>
-                  <TouchableOpacity
-                    style={[styles.editButton, { backgroundColor: isDark ? '#1e3a8a' : '#eff6ff' }]}
-                    onPress={() => openModal(expense)}
-                  >
-                    <Edit size={16} color={theme.colors.primary} />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.deleteButton, { backgroundColor: isDark ? '#7f1d1d' : '#fef2f2' }]}
-                    onPress={() => deleteExpense(expense.id)}
-                  >
-                    <Trash2 size={16} color={theme.colors.danger} />
-                  </TouchableOpacity>
-                </View>
               </View>
-            </View>
+            </TouchableOpacity>
           ))
         )}
       </ScrollView>
@@ -318,90 +319,106 @@ export default function ExpensesScreen() {
             {editingExpense ? 'Edit Expense' : 'Add New Expense'}
           </Text>
           
-          <View style={styles.formGroup}>
-            <Text style={[styles.label, { color: theme.colors.text.secondary }]}>Amount *</Text>
-            <TextInput
-              style={[styles.input, { 
-                backgroundColor: theme.colors.background, 
-                borderColor: theme.colors.border, 
-                color: theme.colors.text.primary 
-              }]}
-              placeholder="Enter amount"
-              placeholderTextColor={theme.colors.text.muted}
-              value={formData.amount}
-              onChangeText={(text) => setFormData({ ...formData, amount: text })}
-              keyboardType="numeric"
-            />
-          </View>
+          <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
+            <View style={styles.formGroup}>
+              <Text style={[styles.label, { color: theme.colors.text.secondary }]}>Amount *</Text>
+              <TextInput
+                style={[styles.input, { 
+                  backgroundColor: theme.colors.background, 
+                  borderColor: theme.colors.border, 
+                  color: theme.colors.text.primary 
+                }]}
+                placeholder="Enter amount"
+                placeholderTextColor={theme.colors.text.muted}
+                value={formData.amount}
+                onChangeText={(text) => setFormData({ ...formData, amount: text })}
+                keyboardType="numeric"
+              />
+            </View>
 
-          <View style={styles.formGroup}>
-            <Text style={[styles.label, { color: theme.colors.text.secondary }]}>Category *</Text>
-            <Picker
-              selectedValue={formData.category}
-              style={[styles.picker, { backgroundColor: theme.colors.background, color: theme.colors.text.primary }]}
-              onValueChange={(value) => setFormData({ ...formData, category: value })}
-            >
-              {EXPENSE_CATEGORIES.map(category => (
-                <Picker.Item key={category} label={category} value={category} />
-              ))}
-            </Picker>
-          </View>
+            <View style={styles.formGroup}>
+              <Text style={[styles.label, { color: theme.colors.text.secondary }]}>Category *</Text>
+              <Picker
+                selectedValue={formData.category}
+                style={[styles.picker, { backgroundColor: theme.colors.background, color: theme.colors.text.primary }]}
+                onValueChange={(value) => setFormData({ ...formData, category: value })}
+              >
+                {EXPENSE_CATEGORIES.map(category => (
+                  <Picker.Item key={category} label={category} value={category} />
+                ))}
+              </Picker>
+            </View>
 
-          <View style={styles.formGroup}>
-            <Text style={[styles.label, { color: theme.colors.text.secondary }]}>Description</Text>
-            <TextInput
-              style={[styles.input, { 
-                backgroundColor: theme.colors.background, 
-                borderColor: theme.colors.border, 
-                color: theme.colors.text.primary 
-              }]}
-              placeholder="Enter description"
-              placeholderTextColor={theme.colors.text.muted}
-              value={formData.description}
-              onChangeText={(text) => setFormData({ ...formData, description: text })}
-            />
-          </View>
+            <View style={styles.formGroup}>
+              <Text style={[styles.label, { color: theme.colors.text.secondary }]}>Description</Text>
+              <TextInput
+                style={[styles.input, { 
+                  backgroundColor: theme.colors.background, 
+                  borderColor: theme.colors.border, 
+                  color: theme.colors.text.primary 
+                }]}
+                placeholder="Enter description"
+                placeholderTextColor={theme.colors.text.muted}
+                value={formData.description}
+                onChangeText={(text) => setFormData({ ...formData, description: text })}
+              />
+            </View>
 
-          <View style={styles.formGroup}>
-            <Text style={[styles.label, { color: theme.colors.text.secondary }]}>Payment Method</Text>
-            <Picker
-              selectedValue={formData.paymentMethod}
-              style={[styles.picker, { backgroundColor: theme.colors.background, color: theme.colors.text.primary }]}
-              onValueChange={(value) => setFormData({ ...formData, paymentMethod: value })}
-            >
-              {PAYMENT_METHODS.map(method => (
-                <Picker.Item key={method} label={method} value={method} />
-              ))}
-            </Picker>
-          </View>
+            <View style={styles.formGroup}>
+              <Text style={[styles.label, { color: theme.colors.text.secondary }]}>Payment Method</Text>
+              <Picker
+                selectedValue={formData.paymentMethod}
+                style={[styles.picker, { backgroundColor: theme.colors.background, color: theme.colors.text.primary }]}
+                onValueChange={(value) => setFormData({ ...formData, paymentMethod: value })}
+              >
+                {PAYMENT_METHODS.map(method => (
+                  <Picker.Item key={method} label={method} value={method} />
+                ))}
+              </Picker>
+            </View>
 
-          <View style={styles.formGroup}>
-            <Text style={[styles.label, { color: theme.colors.text.secondary }]}>Account *</Text>
-            <Picker
-              selectedValue={formData.account}
-              style={[styles.picker, { backgroundColor: theme.colors.background, color: theme.colors.text.primary }]}
-              onValueChange={(value) => setFormData({ ...formData, account: value })}
-            >
-              {ACCOUNT_TYPES.map(account => (
-                <Picker.Item key={account} label={account} value={account} />
-              ))}
-            </Picker>
-          </View>
+            <View style={styles.formGroup}>
+              <Text style={[styles.label, { color: theme.colors.text.secondary }]}>Account *</Text>
+              <Picker
+                selectedValue={formData.account}
+                style={[
+                  styles.picker, 
+                  { 
+                    backgroundColor: theme.colors.background, 
+                    color: theme.colors.text.primary,
+                    borderWidth: 1,
+                    borderColor: theme.colors.border
+                  }
+                ]}
+                onValueChange={(value) => setFormData({ ...formData, account: value })}
+                dropdownIconColor={theme.colors.text.muted}
+              >
+                {ACCOUNT_TYPES.map(account => (
+                  <Picker.Item 
+                    key={account} 
+                    label={account} 
+                    value={account}
+                    color={theme.colors.text.primary}
+                  />
+                ))}
+              </Picker>
+            </View>
 
-          <View style={styles.formGroup}>
-            <Text style={[styles.label, { color: theme.colors.text.secondary }]}>Location (Optional)</Text>
-            <TextInput
-              style={[styles.input, { 
-                backgroundColor: theme.colors.background, 
-                borderColor: theme.colors.border, 
-                color: theme.colors.text.primary 
-              }]}
-              placeholder="Enter location"
-              placeholderTextColor={theme.colors.text.muted}
-              value={formData.location}
-              onChangeText={(text) => setFormData({ ...formData, location: text })}
-            />
-          </View>
+            <View style={styles.formGroup}>
+              <Text style={[styles.label, { color: theme.colors.text.secondary }]}>Location (Optional)</Text>
+              <TextInput
+                style={[styles.input, { 
+                  backgroundColor: theme.colors.background, 
+                  borderColor: theme.colors.border, 
+                  color: theme.colors.text.primary 
+                }]}
+                placeholder="Enter location"
+                placeholderTextColor={theme.colors.text.muted}
+                value={formData.location}
+                onChangeText={(text) => setFormData({ ...formData, location: text })}
+              />
+            </View>
+          </ScrollView>
 
           <View style={styles.modalActions}>
             <TouchableOpacity style={[styles.cancelButton, { backgroundColor: theme.colors.border }]} onPress={closeModal}>
@@ -413,6 +430,91 @@ export default function ExpensesScreen() {
               </Text>
             </TouchableOpacity>
           </View>
+        </View>
+      </Modal>
+
+      {/* Detail Modal */}
+      <Modal
+        isVisible={isDetailModalVisible}
+        onBackdropPress={closeDetailModal}
+        style={styles.modal}
+      >
+        <View style={[styles.modalContent, { backgroundColor: theme.colors.surface }]}>
+          {selectedExpense && (
+            <>
+              <Text style={[styles.modalTitle, { color: theme.colors.text.primary }]}>Expense Details</Text>
+              
+              <View style={styles.detailRow}>
+                <Text style={[styles.detailLabel, { color: theme.colors.text.muted }]}>Amount:</Text>
+                <Text style={[styles.detailValue, { color: theme.colors.expense }]}>
+                  {settings.currency}{selectedExpense.amount.toLocaleString()}
+                </Text>
+              </View>
+              
+              <View style={styles.detailRow}>
+                <Text style={[styles.detailLabel, { color: theme.colors.text.muted }]}>Category:</Text>
+                <Text style={[styles.detailValue, { color: theme.colors.text.primary }]}>{selectedExpense.category}</Text>
+              </View>
+              
+              <View style={styles.detailRow}>
+                <Text style={[styles.detailLabel, { color: theme.colors.text.muted }]}>Account:</Text>
+                <Text style={[styles.detailValue, { color: theme.colors.text.primary }]}>{selectedExpense.account || 'Cash'}</Text>
+              </View>
+              
+              <View style={styles.detailRow}>
+                <Text style={[styles.detailLabel, { color: theme.colors.text.muted }]}>Payment Method:</Text>
+                <Text style={[styles.detailValue, { color: theme.colors.text.primary }]}>{selectedExpense.paymentMethod}</Text>
+              </View>
+              
+              <View style={styles.detailRow}>
+                <Text style={[styles.detailLabel, { color: theme.colors.text.muted }]}>Date:</Text>
+                <Text style={[styles.detailValue, { color: theme.colors.text.primary }]}>{formatDate(selectedExpense.date)}</Text>
+              </View>
+              
+              {selectedExpense.description && (
+                <View style={styles.detailRow}>
+                  <Text style={[styles.detailLabel, { color: theme.colors.text.muted }]}>Description:</Text>
+                  <Text style={[styles.detailValue, { color: theme.colors.text.primary }]}>{selectedExpense.description}</Text>
+                </View>
+              )}
+              
+              {selectedExpense.location && (
+                <View style={styles.detailRow}>
+                  <Text style={[styles.detailLabel, { color: theme.colors.text.muted }]}>Location:</Text>
+                  <Text style={[styles.detailValue, { color: theme.colors.text.primary }]}>{selectedExpense.location}</Text>
+                </View>
+              )}
+              
+              <View style={styles.detailModalActions}>
+                <TouchableOpacity 
+                  style={[styles.detailButton, styles.deleteDetailButton, { backgroundColor: theme.colors.danger }]} 
+                  onPress={() => {
+                    closeDetailModal();
+                    deleteExpense(selectedExpense.id);
+                  }}
+                >
+                  <Text style={styles.detailButtonText}>Delete</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={[styles.detailButton, styles.editDetailButton, { backgroundColor: theme.colors.primary }]} 
+                  onPress={() => {
+                    closeDetailModal();
+                    openModal(selectedExpense);
+                  }}
+                >
+                  <Text style={styles.detailButtonText}>Edit</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={[styles.detailButton, styles.cancelDetailButton, { backgroundColor: theme.colors.border }]} 
+                  onPress={closeDetailModal}
+                >
+                  <Text style={[styles.detailButtonText, { color: theme.colors.text.muted }]}>Cancel</Text>
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
         </View>
       </Modal>
     </View>
@@ -563,6 +665,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginBottom: 4,
   },
+  expenseAccountDate: {
+    fontSize: 12,
+    marginBottom: 4,
+  },
   expenseDate: {
     fontSize: 12,
     color: '#9ca3af',
@@ -609,7 +715,10 @@ const styles = StyleSheet.create({
     padding: 20,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    maxHeight: '80%',
+    maxHeight: '100%',
+  },
+  modalScrollView: {
+    maxHeight: '100%',
   },
   modalTitle: {
     fontSize: 20,
@@ -640,6 +749,7 @@ const styles = StyleSheet.create({
   picker: {
     backgroundColor: '#f9fafb',
     borderRadius: 12,
+    minHeight: 48,
   },
   modalActions: {
     flexDirection: 'row',
@@ -666,6 +776,43 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   saveButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  detailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.05)',
+  },
+  detailLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  detailValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    flex: 1,
+    textAlign: 'right',
+  },
+  detailModalActions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 24,
+  },
+  detailButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  deleteDetailButton: {},
+  editDetailButton: {},
+  cancelDetailButton: {},
+  detailButtonText: {
     fontSize: 16,
     fontWeight: '600',
     color: '#fff',
