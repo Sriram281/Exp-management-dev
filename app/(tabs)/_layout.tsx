@@ -37,18 +37,9 @@ export default function TabLayout() {
       <Tabs.Screen
         name="expenses"
         options={{
-          title: 'Expenses',
+          title: 'Stats',
           tabBarIcon: ({ size, color }) => (
-            <TrendingUp size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="income"
-        options={{
-          title: 'Income',
-          tabBarIcon: ({ size, color }) => (
-            <DollarSign size={size} color={color} />
+            <BarChart3 size={size} color={color} />
           ),
         }}
       />
@@ -66,7 +57,7 @@ export default function TabLayout() {
         options={{
           title: 'Reports',
           tabBarIcon: ({ size, color }) => (
-            <BarChart3 size={size} color={color} />
+            <TrendingUp size={size} color={color} />
           ),
         }}
       />
