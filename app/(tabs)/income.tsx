@@ -10,11 +10,11 @@ import {
   RefreshControl
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { Plus, Search, Edit, Trash2, DollarSign, ArrowLeft } from 'lucide-react-native';
+import { Plus, Search, Edit, Trash2, DollarSign, ArrowLeft, Briefcase, TrendingUp, Building, PiggyBank, Home, Wallet } from 'lucide-react-native';
 import Modal from 'react-native-modal';
 import { Picker } from '@react-native-picker/picker';
 import { getIncome, saveIncome, getSettings } from '@/utils/storage';
-import { Income, INCOME_SOURCES } from '@/types';
+import { Income, INCOME_SOURCES, ACCOUNT_TYPES } from '@/types';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useRouter } from 'expo-router';
 
@@ -33,6 +33,7 @@ export default function IncomeScreen() {
     amount: '',
     source: INCOME_SOURCES[0],
     description: '',
+    account: ACCOUNT_TYPES[0],
     recurring: false,
   });
 
@@ -74,6 +75,7 @@ export default function IncomeScreen() {
       amount: '',
       source: INCOME_SOURCES[0],
       description: '',
+      account: ACCOUNT_TYPES[0],
       recurring: false,
     });
     setEditingIncome(null);
@@ -86,6 +88,7 @@ export default function IncomeScreen() {
         amount: incomeItem.amount.toString(),
         source: incomeItem.source,
         description: incomeItem.description,
+        account: incomeItem.account || ACCOUNT_TYPES[0],
         recurring: incomeItem.recurring || false,
       });
     } else {
@@ -100,8 +103,8 @@ export default function IncomeScreen() {
   };
 
   const saveIncomeItem = async () => {
-    if (!formData.amount || !formData.description) {
-      Alert.alert('Error', 'Please fill in all required fields');
+    if (!formData.amount || !formData.source || !formData.account) {
+      Alert.alert('Error', 'Please fill in all required fields (Amount, Source, and Account)');
       return;
     }
 
@@ -110,6 +113,7 @@ export default function IncomeScreen() {
       amount: parseFloat(formData.amount),
       source: formData.source,
       description: formData.description,
+      account: formData.account,
       recurring: formData.recurring,
       date: editingIncome?.date || new Date().toISOString(),
     };
@@ -162,6 +166,25 @@ export default function IncomeScreen() {
       month: 'short',
       year: 'numeric'
     });
+  };
+
+  const getSourceIcon = (source: string) => {
+    const iconProps = { size: 20, color: theme.colors.text.muted };
+    
+    switch (source.toLowerCase()) {
+      case 'salary':
+        return <Briefcase {...iconProps} />;
+      case 'freelance':
+        return <TrendingUp {...iconProps} />;
+      case 'business':
+        return <Building {...iconProps} />;
+      case 'investments':
+        return <PiggyBank {...iconProps} />;
+      case 'rental':
+        return <Home {...iconProps} />;
+      default:
+        return <Wallet {...iconProps} />;
+    }
   };
 
   return (
@@ -233,15 +256,20 @@ export default function IncomeScreen() {
         ) : (
           filteredIncome.map((incomeItem) => (
             <View key={incomeItem.id} style={[styles.incomeCard, { backgroundColor: theme.colors.surface, borderLeftColor: theme.colors.income }]}>
-              <View style={styles.incomeInfo}>
-                <Text style={[styles.incomeDescription, { color: theme.colors.text.primary }]}>{incomeItem.description}</Text>
-                <Text style={[styles.incomeSource, { color: theme.colors.text.muted }]}>{incomeItem.source}</Text>
-                <Text style={[styles.incomeDate, { color: theme.colors.text.muted }]}>{formatDate(incomeItem.date)}</Text>
-                {incomeItem.recurring && (
-                  <View style={[styles.recurringBadge, { backgroundColor: isDark ? '#065f46' : '#d1fae5' }]}>
-                    <Text style={[styles.recurringText, { color: theme.colors.success }]}>Recurring</Text>
-                  </View>
-                )}
+              <View style={styles.incomeLeft}>
+                <View style={styles.iconContainer}>
+                  {getSourceIcon(incomeItem.source)}
+                </View>
+                <View style={styles.incomeInfo}>
+                  <Text style={[styles.incomeSource, { color: theme.colors.text.primary }]}>{incomeItem.source}</Text>
+                  <Text style={[styles.incomeAccount, { color: theme.colors.text.muted }]}>{incomeItem.account || 'Cash'}</Text>
+                  <Text style={[styles.incomeDate, { color: theme.colors.text.muted }]}>{formatDate(incomeItem.date)}</Text>
+                  {incomeItem.recurring && (
+                    <View style={[styles.recurringBadge, { backgroundColor: isDark ? '#065f46' : '#d1fae5' }]}>
+                      <Text style={[styles.recurringText, { color: theme.colors.success }]}>Recurring</Text>
+                    </View>
+                  )}
+                </View>
               </View>
               
               <View style={styles.incomeActions}>
@@ -298,7 +326,26 @@ export default function IncomeScreen() {
           </View>
 
           <View style={styles.formGroup}>
-            <Text style={[styles.label, { color: theme.colors.text.secondary }]}>Description *</Text>
+            <Text style={[styles.label, { color: theme.colors.text.secondary }]}>Source *</Text>
+            <Picker
+              selectedValue={formData.source}
+              style={[styles.picker, { backgroundColor: theme.colors.background, color: theme.colors.text.primary }]}
+              onValueChange={(value) => setFormData({ ...formData, source: value })}
+              dropdownIconColor={theme.colors.text.muted}
+            >
+              {INCOME_SOURCES.map(source => (
+                <Picker.Item 
+                  key={source} 
+                  label={source} 
+                  value={source} 
+                  color={theme.colors.text.primary}
+                />
+              ))}
+            </Picker>
+          </View>
+          
+          <View style={styles.formGroup}>
+            <Text style={[styles.label, { color: theme.colors.text.secondary }]}>Description</Text>
             <TextInput
               style={[styles.input, { 
                 backgroundColor: theme.colors.background, 
@@ -313,18 +360,18 @@ export default function IncomeScreen() {
           </View>
 
           <View style={styles.formGroup}>
-            <Text style={[styles.label, { color: theme.colors.text.secondary }]}>Source</Text>
+            <Text style={[styles.label, { color: theme.colors.text.secondary }]}>Account *</Text>
             <Picker
-              selectedValue={formData.source}
+              selectedValue={formData.account}
               style={[styles.picker, { backgroundColor: theme.colors.background, color: theme.colors.text.primary }]}
-              onValueChange={(value) => setFormData({ ...formData, source: value })}
+              onValueChange={(value) => setFormData({ ...formData, account: value })}
               dropdownIconColor={theme.colors.text.muted}
             >
-              {INCOME_SOURCES.map(source => (
+              {ACCOUNT_TYPES.map(account => (
                 <Picker.Item 
-                  key={source} 
-                  label={source} 
-                  value={source} 
+                  key={account} 
+                  label={account} 
+                  value={account} 
                   color={theme.colors.text.primary}
                 />
               ))}
@@ -484,6 +531,20 @@ const styles = StyleSheet.create({
     elevation: 3,
     borderLeftWidth: 4,
   },
+  incomeLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
   incomeInfo: {
     flex: 1,
   },
@@ -494,8 +555,12 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   incomeSource: {
-    fontSize: 14,
-    color: '#6b7280',
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  incomeAccount: {
+    fontSize: 12,
     marginBottom: 4,
   },
   incomeDate: {

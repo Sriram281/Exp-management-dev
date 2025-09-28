@@ -10,11 +10,11 @@ import {
   RefreshControl
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { Plus, Search, Filter, Edit, Trash2, ArrowLeft } from 'lucide-react-native';
+import { Plus, Search, Filter, Edit, Trash2, ArrowLeft, ShoppingCart, Car, Utensils, Home, Zap, Heart, GraduationCap, Plane, Coffee, Wallet } from 'lucide-react-native';
 import Modal from 'react-native-modal';
 import { Picker } from '@react-native-picker/picker';
 import { getExpenses, saveExpenses, getSettings } from '@/utils/storage';
-import { Expense, EXPENSE_CATEGORIES, PAYMENT_METHODS } from '@/types';
+import { Expense, EXPENSE_CATEGORIES, PAYMENT_METHODS, ACCOUNT_TYPES } from '@/types';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useRouter } from 'expo-router';
 
@@ -35,6 +35,7 @@ export default function ExpensesScreen() {
     category: EXPENSE_CATEGORIES[0],
     description: '',
     paymentMethod: PAYMENT_METHODS[0],
+    account: ACCOUNT_TYPES[0],
     location: '',
     recurring: false,
   });
@@ -75,6 +76,7 @@ export default function ExpensesScreen() {
       category: EXPENSE_CATEGORIES[0],
       description: '',
       paymentMethod: PAYMENT_METHODS[0],
+      account: ACCOUNT_TYPES[0],
       location: '',
       recurring: false,
     });
@@ -89,6 +91,7 @@ export default function ExpensesScreen() {
         category: expense.category,
         description: expense.description,
         paymentMethod: expense.paymentMethod,
+        account: expense.account || ACCOUNT_TYPES[0],
         location: expense.location || '',
         recurring: expense.recurring || false,
       });
@@ -104,8 +107,8 @@ export default function ExpensesScreen() {
   };
 
   const saveExpense = async () => {
-    if (!formData.amount || !formData.description) {
-      Alert.alert('Error', 'Please fill in all required fields');
+    if (!formData.amount || !formData.category || !formData.account) {
+      Alert.alert('Error', 'Please fill in all required fields (Amount, Category, and Account)');
       return;
     }
 
@@ -115,6 +118,7 @@ export default function ExpensesScreen() {
       category: formData.category,
       description: formData.description,
       paymentMethod: formData.paymentMethod,
+      account: formData.account,
       location: formData.location,
       recurring: formData.recurring,
       date: editingExpense?.date || new Date().toISOString(),
@@ -168,6 +172,32 @@ export default function ExpensesScreen() {
       month: 'short',
       year: 'numeric'
     });
+  };
+
+  const getCategoryIcon = (category: string) => {
+    const iconProps = { size: 20, color: theme.colors.text.muted };
+    
+    switch (category.toLowerCase()) {
+      case 'food & dining':
+      case 'groceries':
+        return <Utensils {...iconProps} />;
+      case 'transportation':
+        return <Car {...iconProps} />;
+      case 'shopping':
+        return <ShoppingCart {...iconProps} />;
+      case 'bills & utilities':
+        return <Zap {...iconProps} />;
+      case 'healthcare':
+        return <Heart {...iconProps} />;
+      case 'education':
+        return <GraduationCap {...iconProps} />;
+      case 'travel':
+        return <Plane {...iconProps} />;
+      case 'entertainment':
+        return <Coffee {...iconProps} />;
+      default:
+        return <Wallet {...iconProps} />;
+    }
   };
 
   return (
@@ -236,13 +266,18 @@ export default function ExpensesScreen() {
         ) : (
           filteredExpenses.map((expense) => (
             <View key={expense.id} style={[styles.expenseCard, { backgroundColor: theme.colors.surface }]}>
-              <View style={styles.expenseInfo}>
-                <Text style={[styles.expenseDescription, { color: theme.colors.text.primary }]}>{expense.description}</Text>
-                <Text style={[styles.expenseCategory, { color: theme.colors.text.muted }]}>{expense.category}</Text>
-                <Text style={[styles.expenseDate, { color: theme.colors.text.muted }]}>{formatDate(expense.date)}</Text>
-                {expense.location && (
-                  <Text style={[styles.expenseLocation, { color: theme.colors.text.muted }]}>📍 {expense.location}</Text>
-                )}
+              <View style={styles.expenseLeft}>
+                <View style={styles.iconContainer}>
+                  {getCategoryIcon(expense.category)}
+                </View>
+                <View style={styles.expenseInfo}>
+                  <Text style={[styles.expenseCategory, { color: theme.colors.text.primary }]}>{expense.category}</Text>
+                  <Text style={[styles.expenseAccount, { color: theme.colors.text.muted }]}>{expense.account || 'Cash'}</Text>
+                  <Text style={[styles.expenseDate, { color: theme.colors.text.muted }]}>{formatDate(expense.date)}</Text>
+                  {expense.location && (
+                    <Text style={[styles.expenseLocation, { color: theme.colors.text.muted }]}>📍 {expense.location}</Text>
+                  )}
+                </View>
               </View>
               
               <View style={styles.expenseActions}>
@@ -300,7 +335,20 @@ export default function ExpensesScreen() {
           </View>
 
           <View style={styles.formGroup}>
-            <Text style={[styles.label, { color: theme.colors.text.secondary }]}>Description *</Text>
+            <Text style={[styles.label, { color: theme.colors.text.secondary }]}>Category *</Text>
+            <Picker
+              selectedValue={formData.category}
+              style={[styles.picker, { backgroundColor: theme.colors.background, color: theme.colors.text.primary }]}
+              onValueChange={(value) => setFormData({ ...formData, category: value })}
+            >
+              {EXPENSE_CATEGORIES.map(category => (
+                <Picker.Item key={category} label={category} value={category} />
+              ))}
+            </Picker>
+          </View>
+
+          <View style={styles.formGroup}>
+            <Text style={[styles.label, { color: theme.colors.text.secondary }]}>Description</Text>
             <TextInput
               style={[styles.input, { 
                 backgroundColor: theme.colors.background, 
@@ -315,19 +363,6 @@ export default function ExpensesScreen() {
           </View>
 
           <View style={styles.formGroup}>
-            <Text style={[styles.label, { color: theme.colors.text.secondary }]}>Category</Text>
-            <Picker
-              selectedValue={formData.category}
-              style={[styles.picker, { backgroundColor: theme.colors.background, color: theme.colors.text.primary }]}
-              onValueChange={(value) => setFormData({ ...formData, category: value })}
-            >
-              {EXPENSE_CATEGORIES.map(category => (
-                <Picker.Item key={category} label={category} value={category} />
-              ))}
-            </Picker>
-          </View>
-
-          <View style={styles.formGroup}>
             <Text style={[styles.label, { color: theme.colors.text.secondary }]}>Payment Method</Text>
             <Picker
               selectedValue={formData.paymentMethod}
@@ -336,6 +371,19 @@ export default function ExpensesScreen() {
             >
               {PAYMENT_METHODS.map(method => (
                 <Picker.Item key={method} label={method} value={method} />
+              ))}
+            </Picker>
+          </View>
+
+          <View style={styles.formGroup}>
+            <Text style={[styles.label, { color: theme.colors.text.secondary }]}>Account *</Text>
+            <Picker
+              selectedValue={formData.account}
+              style={[styles.picker, { backgroundColor: theme.colors.background, color: theme.colors.text.primary }]}
+              onValueChange={(value) => setFormData({ ...formData, account: value })}
+            >
+              {ACCOUNT_TYPES.map(account => (
+                <Picker.Item key={account} label={account} value={account} />
               ))}
             </Picker>
           </View>
@@ -483,6 +531,20 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
   },
+  expenseLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
   expenseInfo: {
     flex: 1,
   },
@@ -493,8 +555,12 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   expenseCategory: {
-    fontSize: 14,
-    color: '#6b7280',
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  expenseAccount: {
+    fontSize: 12,
     marginBottom: 4,
   },
   expenseDate: {

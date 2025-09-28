@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, RefreshControl, Image, TouchableOpacity } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { TrendingUp, TrendingDown, Wallet, AlertTriangle, User } from 'lucide-react-native';
+import { TrendingUp, TrendingDown, Wallet, AlertTriangle, User, Bell, ShoppingCart, Car, Utensils, Home, Zap, Heart, GraduationCap, Plane, Coffee } from 'lucide-react-native';
 import { getExpenses, getIncome, getBudgets, getSettings, getUserProfile } from '@/utils/storage';
 import { Expense, Income, Budget, UserProfile } from '@/types';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -63,6 +63,37 @@ export default function Dashboard() {
     if (hour < 17) return 'Good Afternoon';
     if (hour < 21) return 'Good Evening';
     return 'Good Night';
+  };
+
+  const getCurrentMonthYear = () => {
+    const date = new Date();
+    return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+  };
+
+  const getCategoryIcon = (category: string) => {
+    const iconProps = { size: 20, color: theme.colors.text.muted };
+    
+    switch (category.toLowerCase()) {
+      case 'food & dining':
+      case 'groceries':
+        return <Utensils {...iconProps} />;
+      case 'transportation':
+        return <Car {...iconProps} />;
+      case 'shopping':
+        return <ShoppingCart {...iconProps} />;
+      case 'bills & utilities':
+        return <Zap {...iconProps} />;
+      case 'healthcare':
+        return <Heart {...iconProps} />;
+      case 'education':
+        return <GraduationCap {...iconProps} />;
+      case 'travel':
+        return <Plane {...iconProps} />;
+      case 'entertainment':
+        return <Coffee {...iconProps} />;
+      default:
+        return <Wallet {...iconProps} />;
+    }
   };
 
   const stats = useMemo(() => {
@@ -136,8 +167,8 @@ export default function Dashboard() {
               <Text style={[styles.userName, { color: theme.colors.text.primary }]}>{userProfile?.name || 'User'}!</Text>
             </View>
           </View>
-          <TouchableOpacity style={styles.settingsButton}>
-            <Text style={styles.settingsIcon}>⚙️</Text>
+          <TouchableOpacity style={[styles.settingsButton, { backgroundColor: theme.colors.surface }]}>
+            <Bell size={24} color={theme.colors.text.primary} />
           </TouchableOpacity>
         </View>
 
@@ -182,7 +213,10 @@ export default function Dashboard() {
 
         {/* Quick Stats */}
         <View style={[styles.quickStats, { backgroundColor: theme.colors.surface }]}>
-          <Text style={[styles.sectionTitle, { color: theme.colors.text.primary }]}>Quick Stats</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text.primary }]}>Quick Stats</Text>
+            <Text style={[styles.monthYear, { color: theme.colors.text.muted }]}>{getCurrentMonthYear()}</Text>
+          </View>
           
           <View style={styles.statRow}>
             <Text style={[styles.statLabel, { color: theme.colors.text.muted }]}>Total Transactions</Text>
@@ -207,16 +241,25 @@ export default function Dashboard() {
 
         {/* Recent Activity Preview */}
         <View style={[styles.recentActivity, { backgroundColor: theme.colors.surface }]}>
-          <Text style={[styles.sectionTitle, { color: theme.colors.text.primary }]}>Recent Activity</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text.primary }]}>Recent Activity</Text>
+            <Text style={[styles.monthYear, { color: theme.colors.text.muted }]}>{getCurrentMonthYear()}</Text>
+          </View>
           {expenses.slice(0, 3).map((expense) => (
             <View key={expense.id} style={[styles.activityItem, { borderBottomColor: theme.colors.border }]}>
-              <View style={styles.activityInfo}>
-                <Text style={[styles.activityDescription, { color: theme.colors.text.primary }]}>{expense.description}</Text>
-                <Text style={[styles.activityCategory, { color: theme.colors.text.muted }]}>{expense.category}</Text>
+              <View style={styles.activityLeft}>
+                <View style={styles.iconContainer}>
+                  {getCategoryIcon(expense.category)}
+                </View>
+                <View style={styles.activityInfo}>
+                  <Text style={[styles.activityCategory, { color: theme.colors.text.primary }]}>{expense.category}</Text>
+                  <Text style={[styles.activityAccount, { color: theme.colors.text.muted }]}>{expense.account || 'Cash'}</Text>
+                </View>
               </View>
-              <Text style={[styles.activityAmount, { color: theme.colors.expense }]}>
-                -{settings.currency}{expense.amount}
-              </Text>
+              <View style={styles.activityRight}>
+                <Text style={[styles.activityAmount, { color: theme.colors.expense }]}>-{settings.currency}{expense.amount}</Text>
+                <View style={[styles.expenseIndicator, { backgroundColor: "white" }]} />
+              </View>
             </View>
           ))}
         </View>
@@ -273,7 +316,13 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   settingsButton: {
-    padding: 8,
+    padding: 12,
+    borderRadius: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   settingsIcon: {
     fontSize: 20,
@@ -374,10 +423,19 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    marginBottom: 16,
+  },
+  monthYear: {
+    fontSize: 14,
+    fontWeight: '500',
   },
   statRow: {
     flexDirection: 'row',
@@ -422,6 +480,20 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 1,
   },
+  activityLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
   activityInfo: {
     flex: 1,
   },
@@ -431,10 +503,24 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   activityCategory: {
+    fontSize: 14,
+    fontWeight: '500',
+    marginBottom: 2,
+  },
+  activityAccount: {
     fontSize: 12,
+  },
+  activityRight: {
+    alignItems: 'flex-end',
   },
   activityAmount: {
     fontSize: 14,
     fontWeight: '600',
+    marginBottom: 4,
+  },
+  expenseIndicator: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
 });

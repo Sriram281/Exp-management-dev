@@ -5,6 +5,7 @@ export interface Expense {
   description: string;
   date: string;
   paymentMethod: string;
+  account: string;
   location?: string;
   receipt?: string;
   recurring?: boolean;
@@ -17,6 +18,7 @@ export interface Income {
   source: string;
   description: string;
   date: string;
+  account: string;
   recurring?: boolean;
   recurringFreq?: 'daily' | 'weekly' | 'monthly' | 'yearly';
 }
@@ -76,4 +78,14 @@ export const PAYMENT_METHODS = [
   'UPI',
   'Net Banking',
   'Wallet'
+];
+
+export const ACCOUNT_TYPES = [
+  'Cash',
+  'Savings Account',
+  'Current Account',
+  'Credit Card',
+  'Digital Wallet',
+  'UPI Account',
+  'Other'
 ];
